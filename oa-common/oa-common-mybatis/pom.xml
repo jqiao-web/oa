@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>cn.qiao</groupId>
+        <artifactId>oa-common</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>oa-common-mybatis</artifactId>
+    <name>OA Common MyBatis - 数据库访问</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>cn.qiao</groupId>
+            <artifactId>oa-common-core</artifactId>
+        </dependency>
+
+        <!-- MyBatis-Plus -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+        </dependency>
+
+        <!-- MyBatis-Plus JSqlParser（分页插件等依赖） -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+            <version>${mybatis-plus.version}</version>
+        </dependency>
+
+        <!-- MySQL Driver -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Spring AOP（数据权限切面） -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-aop</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+        </dependency>
+
+        <!-- oa-common-security（可选依赖，提供 SecurityUtils 用户上下文） -->
+        <dependency>
+            <groupId>cn.qiao</groupId>
+            <artifactId>oa-common-security</artifactId>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+
+</project>

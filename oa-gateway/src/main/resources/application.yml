@@ -1,0 +1,72 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: oa-gateway
+  config:
+    import: "optional:nacos:oa-gateway.yaml"
+
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_HOST:localhost}:${NACOS_PORT:8848}
+        namespace: ${NACOS_NAMESPACE:}
+      config:
+        server-addr: ${NACOS_HOST:localhost}:${NACOS_PORT:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        file-extension: yaml
+
+    gateway:
+      server:
+        webflux:
+          # 路由规则
+          routes:
+            # 用户权限服务
+            - id: oa-auth
+              uri: lb://oa-auth
+              predicates:
+                - Path=/auth/**
+
+            # 审批服务
+            - id: oa-approval
+              uri: lb://oa-approval
+              predicates:
+                - Path=/approval/**
+
+            # 考勤服务
+            - id: oa-attendance
+              uri: lb://oa-attendance
+              predicates:
+                - Path=/attendance/**
+
+            # 项目服务
+            - id: oa-project
+              uri: lb://oa-project
+              predicates:
+                - Path=/project/**
+
+            # 文档服务
+            - id: oa-document
+              uri: lb://oa-document
+              predicates:
+                - Path=/document/**
+
+            # 通知服务
+            - id: oa-notification
+              uri: lb://oa-notification
+              predicates:
+                - Path=/notification/**
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:root}
+
+# 白名单（不需要鉴权的路径）
+gateway-whitelist:
+  whitelist:
+    - /auth/login
+    - /auth/register
+    - /auth/captcha

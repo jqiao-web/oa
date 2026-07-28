@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>cn.qiao</groupId>
+        <artifactId>oa-common</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>oa-common-jwt</artifactId>
+    <name>OA Common JWT - JWT工具模块（无Web依赖）</name>
+    <description>纯 JWT 工具模块，不含任何 Web 依赖（WebMVC/WebFlux），可供网关和业务服务共同引用</description>
+
+    <dependencies>
+        <!-- Spring Context（仅用于 @Component、@Value 注解） -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+
+        <!-- JWT -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+    </dependencies>
+
+</project>
