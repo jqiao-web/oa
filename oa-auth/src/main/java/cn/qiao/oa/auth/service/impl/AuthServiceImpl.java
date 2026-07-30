@@ -52,7 +52,7 @@ public class AuthServiceImpl implements AuthService {
         if (user == null) {
             throw new BusinessException(ResponseStatusEnum.ACCOUNT_NOT_EXIST.getCode(), ResponseStatusEnum.ACCOUNT_NOT_EXIST.getMessage());
         }
-
+        System.out.println(passwordEncoder.encode(loginDTO.getPassword()));
         if (!passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {
             throw new BusinessException(ResponseStatusEnum.PASSWORD_ERROR.getCode(), ResponseStatusEnum.PASSWORD_ERROR.getMessage());
         }

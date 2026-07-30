@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { getToken } from '@/utils/auth'
+import { useUserStore } from '@/stores/user'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -124,15 +125,46 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to, _from, next) => {
-  document.title = `${(to.meta.title as string) || ''} - OA协同办公系统`
+// 白名单（无需登录即可访问）
+const whiteList = ['/login']
+
+router.beforeEach(async (to, _from, next) => {
+  // 设置页面标题
+  const title = (to.meta.title as string) || ''
+  document.title = title ? `${title} - OA协同办公系统` : 'OA协同办公系统'
+
   const token = getToken()
-  if (to.path === '/login') {
+  const userStore = useUserStore()
+
+  // 1. 有 token
+  if (token) {
+    if (to.path === '/login') {
+      // 已登录访问登录页，跳转到首页
+      next({ path: '/dashboard' })
+      return
+    }
+
+    // 如果用户信息未加载，先加载用户信息
+    if (!userStore.userInfo) {
+      try {
+        await userStore.fetchUserInfo()
+      } catch (error) {
+        // token 失效，清除并跳转登录
+        userStore.logoutAction()
+        next(`/login?redirect=${to.path}`)
+        return
+      }
+    }
+
     next()
-  } else if (!token) {
-    next('/login')
   } else {
-    next()
+    // 2. 无 token
+    if (whiteList.includes(to.path)) {
+      next()
+    } else {
+      // 记录目标路径，登录后跳回
+      next(`/login?redirect=${to.path}`)
+    }
   }
 })
 

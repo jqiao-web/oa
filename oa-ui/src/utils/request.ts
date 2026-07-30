@@ -21,9 +21,14 @@ service.interceptors.request.use(
 
 service.interceptors.response.use(
   (response) => {
-    const { code, message, data } = response.data
+    const res = response.data
+    // 如果返回的不是标准 R 结构，直接返回
+    if (res.code === undefined || res.code === null) {
+      return res
+    }
+    const { code, message, data } = res
     if (code === 200) {
-      return response.data
+      return data
     }
     if (code === 401) {
       removeToken()
@@ -32,10 +37,17 @@ service.interceptors.response.use(
       return Promise.reject(new Error(message))
     }
     ElMessage.error(message || '请求失败')
-    return Promise.reject(new Error(message))
+    return Promise.reject(new Error(message || String(code)))
   },
   (error) => {
-    ElMessage.error(error.message || '网络错误')
+    // 处理 HTTP 错误状态码
+    if (error.response?.status === 401) {
+      removeToken()
+      router.push('/login')
+      ElMessage.error('登录已过期，请重新登录')
+    } else {
+      ElMessage.error(error.response?.data?.message || error.message || '网络错误')
+    }
     return Promise.reject(error)
   }
 )
