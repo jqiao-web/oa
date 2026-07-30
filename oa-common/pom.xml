@@ -18,9 +18,11 @@
         <module>oa-common-core</module>
         <module>oa-common-redis</module>
         <module>oa-common-jwt</module>
-        <module>oa-common-security</module>
+        <module>oa-common-web</module>
         <module>oa-common-rabbitmq</module>
         <module>oa-common-mybatis</module>
+        <module>oa-common-swagger</module>
+        <module>oa-common-feign</module>
     </modules>
 
 </project>

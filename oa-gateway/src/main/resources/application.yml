@@ -58,11 +58,72 @@ spring:
               predicates:
                 - Path=/notification/**
 
+            # API 文档聚合路由（各服务 api-docs）
+            - id: api-docs-auth
+              uri: lb://oa-auth
+              predicates:
+                - Path=/v3/api-docs/auth
+              filters:
+                - RewritePath=/v3/api-docs/auth, /v3/api-docs
+            - id: api-docs-approval
+              uri: lb://oa-approval
+              predicates:
+                - Path=/v3/api-docs/approval
+              filters:
+                - RewritePath=/v3/api-docs/approval, /v3/api-docs
+            - id: api-docs-attendance
+              uri: lb://oa-attendance
+              predicates:
+                - Path=/v3/api-docs/attendance
+              filters:
+                - RewritePath=/v3/api-docs/attendance, /v3/api-docs
+            - id: api-docs-project
+              uri: lb://oa-project
+              predicates:
+                - Path=/v3/api-docs/project
+              filters:
+                - RewritePath=/v3/api-docs/project, /v3/api-docs
+            - id: api-docs-document
+              uri: lb://oa-document
+              predicates:
+                - Path=/v3/api-docs/document
+              filters:
+                - RewritePath=/v3/api-docs/document, /v3/api-docs
+            - id: api-docs-notification
+              uri: lb://oa-notification
+              predicates:
+                - Path=/v3/api-docs/notification
+              filters:
+                - RewritePath=/v3/api-docs/notification, /v3/api-docs
+
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:root}
+
+# SpringDoc OpenAPI 聚合配置
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    urls:
+      - name: 用户权限服务
+        url: /v3/api-docs/auth
+      - name: 审批服务
+        url: /v3/api-docs/approval
+      - name: 考勤服务
+        url: /v3/api-docs/attendance
+      - name: 项目服务
+        url: /v3/api-docs/project
+      - name: 文档服务
+        url: /v3/api-docs/document
+      - name: 通知服务
+        url: /v3/api-docs/notification
+    oauth2:
+      client-id: swagger-ui
+    persist-authorization: true  # 持久化 Token 到 localStorage
 
 # 白名单（不需要鉴权的路径）
 gateway-whitelist:
@@ -70,3 +131,10 @@ gateway-whitelist:
     - /auth/login
     - /auth/register
     - /auth/captcha
+    - /swagger-ui
+    - /v3/api-docs
+# JWT 配置
+oa:
+  jwt:
+    secret: oa-cloud-jwt-secret-key-must-be-at-least-256-bits-long
+    expiration: 86400000

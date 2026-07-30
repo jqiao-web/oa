@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>cn.qiao</groupId>
+        <artifactId>oa-common</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>oa-common-feign</artifactId>
+    <name>OA Common Feign - 服务间调用</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>cn.qiao</groupId>
+            <artifactId>oa-common-core</artifactId>
+        </dependency>
+
+        <!-- OpenFeign（Spring Cloud 声明式 HTTP 客户端） -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+
+        <!-- LoadBalancer（Spring Cloud 负载均衡，替代 Ribbon） -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+        </dependency>
+
+        <!-- Caffeine（LoadBalancer 缓存依赖） -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
+        <!-- Spring Web（RequestContextHolder 获取当前请求上下文） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Spring Boot AutoConfigure（自动装配支持） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>

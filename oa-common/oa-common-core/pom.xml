@@ -14,13 +14,6 @@
     <name>OA Common Core - 核心工具模块</name>
 
     <dependencies>
-        <!-- Spring Web（提供 Controller 注解等） -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webmvc</artifactId>
-            <optional>true</optional>
-        </dependency>
-
         <!-- Lombok（所有子模块均需要，不设 optional） -->
         <dependency>
             <groupId>org.projectlombok</groupId>

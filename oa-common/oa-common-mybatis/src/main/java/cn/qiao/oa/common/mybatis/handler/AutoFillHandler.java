@@ -1,6 +1,6 @@
 package cn.qiao.oa.common.mybatis.handler;
 
-import cn.qiao.oa.common.security.utils.SecurityUtils;
+import cn.qiao.oa.common.web.utils.SecurityUtils;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.reflection.MetaObject;

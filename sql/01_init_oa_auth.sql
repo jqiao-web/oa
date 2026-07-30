@@ -18,7 +18,9 @@ CREATE TABLE IF NOT EXISTS `sys_user` (
   `dept_id` BIGINT DEFAULT NULL COMMENT '部门 ID',
   `position` VARCHAR(50) DEFAULT NULL COMMENT '职位',
   `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态：0-禁用 1-启用 2-离职',
+  `create_by` BIGINT DEFAULT NULL COMMENT '创建人 ID',
   `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_by` BIGINT DEFAULT NULL COMMENT '更新人 ID',
   `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `deleted` TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除：0-未删除 1-已删除',
   PRIMARY KEY (`id`),
@@ -33,7 +35,9 @@ CREATE TABLE IF NOT EXISTS `sys_dept` (
   `sort` INT NOT NULL DEFAULT 0 COMMENT '显示顺序',
   `leader_id` BIGINT DEFAULT NULL COMMENT '部门主管 ID',
   `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态：0-禁用 1-启用',
+  `create_by` BIGINT DEFAULT NULL COMMENT '创建人 ID',
   `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_by` BIGINT DEFAULT NULL COMMENT '更新人 ID',
   `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `deleted` TINYINT NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
@@ -48,7 +52,9 @@ CREATE TABLE IF NOT EXISTS `sys_role` (
   `data_scope` TINYINT NOT NULL DEFAULT 4 COMMENT '数据权限：1-全部 2-本部门及下级 3-本部门 4-仅本人',
   `sort` INT NOT NULL DEFAULT 0,
   `status` TINYINT NOT NULL DEFAULT 1,
+  `create_by` BIGINT DEFAULT NULL COMMENT '创建人 ID',
   `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_by` BIGINT DEFAULT NULL COMMENT '更新人 ID',
   `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `deleted` TINYINT NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
@@ -67,8 +73,11 @@ CREATE TABLE IF NOT EXISTS `sys_menu` (
   `icon` VARCHAR(50) DEFAULT NULL COMMENT '图标',
   `sort` INT NOT NULL DEFAULT 0,
   `visible` TINYINT NOT NULL DEFAULT 1 COMMENT '是否可见',
+  `create_by` BIGINT DEFAULT NULL COMMENT '创建人 ID',
   `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_by` BIGINT DEFAULT NULL COMMENT '更新人 ID',
   `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted` TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='菜单权限表';
 
@@ -103,9 +112,9 @@ INSERT INTO `sys_dept` (`id`, `parent_id`, `name`, `sort`, `status`) VALUES
 
 -- 插入默认角色
 INSERT INTO `sys_role` (`id`, `name`, `code`, `data_scope`, `sort`, `status`) VALUES
-(1, '超级管理员', 'ROLE_ADMIN', 1, 0, 1),
-(2, '部门经理', 'ROLE_DEPT_MANAGER', 3, 1, 1),
-(3, '普通员工', 'ROLE_USER', 4, 2, 1);
+(1, '超级管理员', 'super_admin', 1, 0, 1),
+(2, '部门经理', 'dept_manager', 3, 1, 1),
+(3, '普通员工', 'user', 4, 2, 1);
 
 -- 管理员绑定超级管理员角色
 INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES (1, 1);

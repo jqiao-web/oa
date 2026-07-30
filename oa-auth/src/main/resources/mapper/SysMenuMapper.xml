@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.qiao.oa.auth.mapper.SysMenuMapper">
+
+    <resultMap id="BaseResultMap" type="cn.qiao.oa.auth.entity.SysMenu">
+        <id column="id" property="id"/>
+        <result column="parent_id" property="parentId"/>
+        <result column="name" property="name"/>
+        <result column="type" property="type"/>
+        <result column="path" property="path"/>
+        <result column="component" property="component"/>
+        <result column="permission" property="permission"/>
+        <result column="icon" property="icon"/>
+        <result column="sort" property="sort"/>
+        <result column="visible" property="visible"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <!-- 根据角色 ID 查询菜单（多表联查，保留） -->
+    <select id="selectByRoleId" resultMap="BaseResultMap">
+        SELECT m.* FROM sys_menu m
+        INNER JOIN sys_role_menu rm ON m.id = rm.menu_id
+        WHERE rm.role_id = #{roleId} AND m.deleted = 0
+        ORDER BY m.sort ASC
+    </select>
+
+    <!-- 根据角色 ID 列表查询权限标识（多表联查，保留） -->
+    <select id="selectPermissionsByRoleIds" resultType="java.lang.String">
+        SELECT DISTINCT m.permission FROM sys_menu m
+        INNER JOIN sys_role_menu rm ON m.id = rm.menu_id
+        INNER JOIN sys_role r ON rm.role_id = r.id
+        WHERE r.id IN
+        <foreach collection="roleIds" item="roleId" open="(" separator="," close=")">
+            #{roleId}
+        </foreach>
+        AND r.deleted = 0
+        AND m.deleted = 0
+        AND m.permission IS NOT NULL
+        AND m.permission != ''
+    </select>
+
+    <!-- 根据角色 ID 列表查询菜单树（多表联查，保留） -->
+    <select id="selectMenuTreeByRoleIds" resultMap="BaseResultMap">
+        SELECT DISTINCT m.* FROM sys_menu m
+        INNER JOIN sys_role_menu rm ON m.id = rm.menu_id
+        INNER JOIN sys_role r ON rm.role_id = r.id
+        WHERE r.id IN
+        <foreach collection="roleIds" item="roleId" open="(" separator="," close=")">
+            #{roleId}
+        </foreach>
+        AND r.deleted = 0
+        AND m.deleted = 0
+        ORDER BY m.parent_id ASC, m.sort ASC
+    </select>
+
+</mapper>

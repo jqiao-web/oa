@@ -1,7 +1,7 @@
 package cn.qiao.oa.common.mybatis.aspect;
 
 import cn.qiao.oa.common.mybatis.annotation.DataScope;
-import cn.qiao.oa.common.security.utils.SecurityUtils;
+import cn.qiao.oa.common.web.utils.SecurityUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;

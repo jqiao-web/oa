@@ -1,0 +1,927 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "OA Cloud 协同办公系统 API",
+    "description": "基于 Spring Cloud 微服务架构的 OA 协同办公系统，包含用户权限、审批、考勤、项目、文档、通知六大模块。所有接口统一通过 Gateway（8080端口）转发，请求 Header 需携带 `Authorization: Bearer {token}`（白名单接口除外）。统一响应格式：`{ code: 200, message: '操作成功', data: ... }`。",
+    "version": "1.0.0",
+    "contact": { "name": "OA Cloud", "email": "admin@oa-cloud.cn" }
+  },
+  "servers": [
+    { "url": "http://localhost:8080", "description": "Gateway 网关（统一入口）" },
+    { "url": "http://localhost:8081", "description": "用户权限服务（直连）" },
+    { "url": "http://localhost:8082", "description": "审批服务（直连）" },
+    { "url": "http://localhost:8083", "description": "考勤服务（直连）" },
+    { "url": "http://localhost:8084", "description": "项目服务（直连）" },
+    { "url": "http://localhost:8085", "description": "文档服务（直连）" },
+    { "url": "http://localhost:8086", "description": "通知服务（直连）" }
+  ],
+  "tags": [
+    { "name": "认证-Auth", "description": "登录/注册/验证码（白名单，无需 Token）" },
+    { "name": "用户管理-User", "description": "员工账号 CRUD、个人信息、密码重置" },
+    { "name": "部门管理-Dept", "description": "组织架构树 CRUD" },
+    { "name": "角色管理-Role", "description": "RBAC 角色 CRUD、角色分配" },
+    { "name": "菜单管理-Menu", "description": "菜单权限树 CRUD" },
+    { "name": "审批模板-ApprovalTemplate", "description": "审批模板配置 CRUD" },
+    { "name": "审批实例-ApprovalInstance", "description": "审批单提交/审批/撤回/催办" },
+    { "name": "打卡管理-Clock", "description": "上班/下班打卡、今日记录" },
+    { "name": "考勤记录-AttendanceRecord", "description": "打卡记录查询、月度统计" },
+    { "name": "请假管理-Leave", "description": "请假申请/审批/查询" },
+    { "name": "考勤规则-AttendanceRule", "description": "考勤规则配置 CRUD" },
+    { "name": "打卡地点-AttendanceLocation", "description": "打卡地点配置 CRUD" },
+    { "name": "项目管理-Project", "description": "项目 CRUD、成员管理" },
+    { "name": "任务管理-Task", "description": "任务 CRUD、看板、状态流转" },
+    { "name": "任务日志-TaskLog", "description": "任务操作日志" },
+    { "name": "文件夹管理-Folder", "description": "文件夹树 CRUD" },
+    { "name": "文件管理-File", "description": "文件上传/下载/列表/回收站" },
+    { "name": "通知消息-Notification", "description": "消息列表/已读/未读数" }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "tags": ["认证-Auth"],
+        "summary": "用户登录",
+        "operationId": "login",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginDTO" } } } },
+        "responses": { "200": { "description": "登录成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_LoginVO" } } } } }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "tags": ["认证-Auth"],
+        "summary": "用户注册",
+        "operationId": "register",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RegisterDTO" } } } },
+        "responses": { "200": { "description": "注册成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/auth/captcha": {
+      "get": {
+        "tags": ["认证-Auth"],
+        "summary": "获取图形验证码",
+        "operationId": "getCaptcha",
+        "responses": { "200": { "description": "验证码数据", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_CaptchaVO" } } } } }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["认证-Auth"],
+        "summary": "退出登录",
+        "operationId": "logout",
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/auth/info": {
+      "get": {
+        "tags": ["认证-Auth"],
+        "summary": "获取当前登录用户信息（含角色和权限）",
+        "operationId": "getUserInfo",
+        "responses": { "200": { "description": "用户信息", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_UserInfoVO" } } } } }
+      }
+    },
+    "/auth/user/list": {
+      "get": {
+        "tags": ["用户管理-User"],
+        "summary": "分页查询员工列表",
+        "operationId": "listUsers",
+        "parameters": [
+          { "name": "current", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } },
+          { "name": "keyword", "in": "query", "description": "姓名/工号模糊搜索", "schema": { "type": "string" } },
+          { "name": "deptId", "in": "query", "schema": { "type": "integer", "format": "int64" } },
+          { "name": "status", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "分页结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_PageUserVO" } } } } }
+      }
+    },
+    "/auth/user": {
+      "post": {
+        "tags": ["用户管理-User"],
+        "summary": "新增员工",
+        "operationId": "createUser",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserCreateDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/auth/user/{id}": {
+      "get": {
+        "tags": ["用户管理-User"],
+        "summary": "查询员工详情",
+        "operationId": "getUser",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "员工详情", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_UserVO" } } } } }
+      },
+      "put": {
+        "tags": ["用户管理-User"],
+        "summary": "修改员工信息",
+        "operationId": "updateUser",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserUpdateDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      },
+      "delete": {
+        "tags": ["用户管理-User"],
+        "summary": "删除员工（逻辑删除）",
+        "operationId": "deleteUser",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/auth/user/{id}/reset-password": {
+      "put": {
+        "tags": ["用户管理-User"],
+        "summary": "重置员工密码",
+        "operationId": "resetPassword",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/auth/user/{id}/roles": {
+      "put": {
+        "tags": ["用户管理-User"],
+        "summary": "分配用户角色",
+        "operationId": "assignRoles",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "array", "items": { "type": "integer", "format": "int64" } } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/auth/dept/tree": {
+      "get": {
+        "tags": ["部门管理-Dept"],
+        "summary": "获取部门树",
+        "operationId": "getDeptTree",
+        "responses": { "200": { "description": "部门树列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_ListDeptTreeVO" } } } } }
+      }
+    },
+    "/auth/dept": {
+      "post": {
+        "tags": ["部门管理-Dept"],
+        "summary": "新增部门",
+        "operationId": "createDept",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeptDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/auth/dept/{id}": {
+      "put": {
+        "tags": ["部门管理-Dept"],
+        "summary": "修改部门",
+        "operationId": "updateDept",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeptDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      },
+      "delete": {
+        "tags": ["部门管理-Dept"],
+        "summary": "删除部门",
+        "operationId": "deleteDept",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/auth/role/list": {
+      "get": {
+        "tags": ["角色管理-Role"],
+        "summary": "查询角色列表",
+        "operationId": "listRoles",
+        "responses": { "200": { "description": "角色列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_ListRoleVO" } } } } }
+      }
+    },
+    "/auth/role": {
+      "post": {
+        "tags": ["角色管理-Role"],
+        "summary": "新增角色",
+        "operationId": "createRole",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RoleDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/auth/role/{id}": {
+      "put": {
+        "tags": ["角色管理-Role"],
+        "summary": "修改角色",
+        "operationId": "updateRole",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RoleDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      },
+      "delete": {
+        "tags": ["角色管理-Role"],
+        "summary": "删除角色",
+        "operationId": "deleteRole",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/auth/role/{id}/menus": {
+      "put": {
+        "tags": ["角色管理-Role"],
+        "summary": "分配角色菜单权限",
+        "operationId": "assignRoleMenus",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "array", "items": { "type": "integer", "format": "int64" } } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/auth/menu/tree": {
+      "get": {
+        "tags": ["菜单管理-Menu"],
+        "summary": "获取菜单树",
+        "operationId": "getMenuTree",
+        "responses": { "200": { "description": "菜单树列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_ListMenuTreeVO" } } } } }
+      }
+    },
+    "/auth/menu": {
+      "post": {
+        "tags": ["菜单管理-Menu"],
+        "summary": "新增菜单",
+        "operationId": "createMenu",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MenuDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/auth/menu/{id}": {
+      "put": {
+        "tags": ["菜单管理-Menu"],
+        "summary": "修改菜单",
+        "operationId": "updateMenu",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MenuDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      },
+      "delete": {
+        "tags": ["菜单管理-Menu"],
+        "summary": "删除菜单",
+        "operationId": "deleteMenu",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/approval/template/list": {
+      "get": {
+        "tags": ["审批模板-ApprovalTemplate"],
+        "summary": "查询审批模板列表",
+        "operationId": "listTemplates",
+        "parameters": [{ "name": "status", "in": "query", "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "模板列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_ListApprovalTemplateVO" } } } } }
+      }
+    },
+    "/approval/template": {
+      "post": {
+        "tags": ["审批模板-ApprovalTemplate"],
+        "summary": "新增审批模板",
+        "operationId": "createTemplate",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApprovalTemplateDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/approval/template/{id}": {
+      "get": {
+        "tags": ["审批模板-ApprovalTemplate"],
+        "summary": "查询模板详情",
+        "operationId": "getTemplate",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "模板详情", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_ApprovalTemplateVO" } } } } }
+      },
+      "put": {
+        "tags": ["审批模板-ApprovalTemplate"],
+        "summary": "修改审批模板",
+        "operationId": "updateTemplate",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApprovalTemplateDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      },
+      "delete": {
+        "tags": ["审批模板-ApprovalTemplate"],
+        "summary": "删除审批模板",
+        "operationId": "deleteTemplate",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/approval/instance/submit": {
+      "post": {
+        "tags": ["审批实例-ApprovalInstance"],
+        "summary": "提交审批申请",
+        "operationId": "submitApproval",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApprovalSubmitDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Long" } } } } }
+      }
+    },
+    "/approval/instance/mine": {
+      "get": {
+        "tags": ["审批实例-ApprovalInstance"],
+        "summary": "查询我发起的审批（分页）",
+        "operationId": "myApprovals",
+        "parameters": [
+          { "name": "current", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } },
+          { "name": "status", "in": "query", "schema": { "type": "integer" } },
+          { "name": "templateCode", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "分页结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_PageApprovalInstanceVO" } } } } }
+      }
+    },
+    "/approval/instance/todo": {
+      "get": {
+        "tags": ["审批实例-ApprovalInstance"],
+        "summary": "查询待我审批的列表（分页）",
+        "operationId": "todoApprovals",
+        "parameters": [
+          { "name": "current", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": { "200": { "description": "分页结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_PageApprovalInstanceVO" } } } } }
+      }
+    },
+    "/approval/instance/done": {
+      "get": {
+        "tags": ["审批实例-ApprovalInstance"],
+        "summary": "查询我已审批的列表（分页）",
+        "operationId": "doneApprovals",
+        "parameters": [
+          { "name": "current", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": { "200": { "description": "分页结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_PageApprovalInstanceVO" } } } } }
+      }
+    },
+    "/approval/instance/{id}": {
+      "get": {
+        "tags": ["审批实例-ApprovalInstance"],
+        "summary": "查询审批单详情（含审批记录）",
+        "operationId": "getApprovalDetail",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "审批详情", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_ApprovalDetailVO" } } } } }
+      }
+    },
+    "/approval/instance/{id}/approve": {
+      "post": {
+        "tags": ["审批实例-ApprovalInstance"],
+        "summary": "审批通过/拒绝",
+        "operationId": "approveInstance",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApprovalActionDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/approval/instance/{id}/withdraw": {
+      "post": {
+        "tags": ["审批实例-ApprovalInstance"],
+        "summary": "撤回审批",
+        "operationId": "withdrawApproval",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/approval/instance/{id}/urge": {
+      "post": {
+        "tags": ["审批实例-ApprovalInstance"],
+        "summary": "催办审批",
+        "operationId": "urgeApproval",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/attendance/clock": {
+      "post": {
+        "tags": ["打卡管理-Clock"],
+        "summary": "上班/下班打卡",
+        "operationId": "clockIn",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ClockDTO" } } } },
+        "responses": { "200": { "description": "打卡成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_AttendanceRecordVO" } } } } }
+      }
+    },
+    "/attendance/clock/today": {
+      "get": {
+        "tags": ["打卡管理-Clock"],
+        "summary": "查询今日打卡记录",
+        "operationId": "todayClock",
+        "responses": { "200": { "description": "今日打卡记录", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_ListAttendanceRecordVO" } } } } }
+      }
+    },
+    "/attendance/record/list": {
+      "get": {
+        "tags": ["考勤记录-AttendanceRecord"],
+        "summary": "分页查询打卡记录",
+        "operationId": "listRecords",
+        "parameters": [
+          { "name": "current", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } },
+          { "name": "startDate", "in": "query", "description": "开始日期 yyyy-MM-dd", "schema": { "type": "string", "format": "date" } },
+          { "name": "endDate", "in": "query", "description": "结束日期 yyyy-MM-dd", "schema": { "type": "string", "format": "date" } },
+          { "name": "userId", "in": "query", "description": "员工ID（管理员查看他人）", "schema": { "type": "integer", "format": "int64" } }
+        ],
+        "responses": { "200": { "description": "分页结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_PageAttendanceRecordVO" } } } } }
+      }
+    },
+    "/attendance/record/stats": {
+      "get": {
+        "tags": ["考勤记录-AttendanceRecord"],
+        "summary": "月度考勤统计",
+        "operationId": "attendanceStats",
+        "parameters": [
+          { "name": "year", "in": "query", "required": true, "schema": { "type": "integer" } },
+          { "name": "month", "in": "query", "required": true, "schema": { "type": "integer" } },
+          { "name": "userId", "in": "query", "schema": { "type": "integer", "format": "int64" } }
+        ],
+        "responses": { "200": { "description": "统计结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_AttendanceStatsVO" } } } } }
+      }
+    },
+    "/attendance/leave": {
+      "post": {
+        "tags": ["请假管理-Leave"],
+        "summary": "提交请假申请",
+        "operationId": "submitLeave",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LeaveDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Long" } } } } }
+      }
+    },
+    "/attendance/leave/list": {
+      "get": {
+        "tags": ["请假管理-Leave"],
+        "summary": "分页查询请假记录",
+        "operationId": "listLeaves",
+        "parameters": [
+          { "name": "current", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } },
+          { "name": "status", "in": "query", "schema": { "type": "integer" } },
+          { "name": "type", "in": "query", "description": "请假类型", "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "分页结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_PageLeaveVO" } } } } }
+      }
+    },
+    "/attendance/leave/{id}": {
+      "get": {
+        "tags": ["请假管理-Leave"],
+        "summary": "查询请假详情",
+        "operationId": "getLeave",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "请假详情", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_LeaveVO" } } } } }
+      }
+    },
+    "/attendance/rule/list": {
+      "get": {
+        "tags": ["考勤规则-AttendanceRule"],
+        "summary": "查询考勤规则列表",
+        "operationId": "listRules",
+        "responses": { "200": { "description": "规则列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_ListAttendanceRuleVO" } } } } }
+      }
+    },
+    "/attendance/rule": {
+      "post": {
+        "tags": ["考勤规则-AttendanceRule"],
+        "summary": "新增考勤规则",
+        "operationId": "createRule",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AttendanceRuleDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/attendance/rule/{id}": {
+      "put": {
+        "tags": ["考勤规则-AttendanceRule"],
+        "summary": "修改考勤规则",
+        "operationId": "updateRule",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AttendanceRuleDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      },
+      "delete": {
+        "tags": ["考勤规则-AttendanceRule"],
+        "summary": "删除考勤规则",
+        "operationId": "deleteRule",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/attendance/location/list": {
+      "get": {
+        "tags": ["打卡地点-AttendanceLocation"],
+        "summary": "查询打卡地点列表",
+        "operationId": "listLocations",
+        "responses": { "200": { "description": "地点列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_ListAttendanceLocationVO" } } } } }
+      }
+    },
+    "/attendance/location": {
+      "post": {
+        "tags": ["打卡地点-AttendanceLocation"],
+        "summary": "新增打卡地点",
+        "operationId": "createLocation",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AttendanceLocationDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/attendance/location/{id}": {
+      "put": {
+        "tags": ["打卡地点-AttendanceLocation"],
+        "summary": "修改打卡地点",
+        "operationId": "updateLocation",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AttendanceLocationDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      },
+      "delete": {
+        "tags": ["打卡地点-AttendanceLocation"],
+        "summary": "删除打卡地点",
+        "operationId": "deleteLocation",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/project/list": {
+      "get": {
+        "tags": ["项目管理-Project"],
+        "summary": "查询项目列表",
+        "operationId": "listProjects",
+        "parameters": [
+          { "name": "current", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } },
+          { "name": "keyword", "in": "query", "description": "项目名称模糊搜索", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "分页结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_PageProjectVO" } } } } }
+      }
+    },
+    "/project": {
+      "post": {
+        "tags": ["项目管理-Project"],
+        "summary": "创建项目",
+        "operationId": "createProject",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProjectDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Long" } } } } }
+      }
+    },
+    "/project/{id}": {
+      "get": {
+        "tags": ["项目管理-Project"],
+        "summary": "查询项目详情",
+        "operationId": "getProject",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "项目详情", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_ProjectDetailVO" } } } } }
+      },
+      "put": {
+        "tags": ["项目管理-Project"],
+        "summary": "修改项目",
+        "operationId": "updateProject",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProjectDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      },
+      "delete": {
+        "tags": ["项目管理-Project"],
+        "summary": "归档项目",
+        "operationId": "archiveProject",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/project/{id}/member/list": {
+      "get": {
+        "tags": ["项目管理-Project"],
+        "summary": "查询项目成员列表",
+        "operationId": "listMembers",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成员列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_ListProjectMemberVO" } } } } }
+      }
+    },
+    "/project/{id}/member": {
+      "post": {
+        "tags": ["项目管理-Project"],
+        "summary": "添加项目成员",
+        "operationId": "addMember",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MemberAddDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/project/{id}/member/{userId}": {
+      "delete": {
+        "tags": ["项目管理-Project"],
+        "summary": "移除项目成员",
+        "operationId": "removeMember",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } },
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }
+        ],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/project/{projectId}/task/list": {
+      "get": {
+        "tags": ["任务管理-Task"],
+        "summary": "查询任务列表（看板）",
+        "operationId": "listTasks",
+        "parameters": [
+          { "name": "projectId", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } },
+          { "name": "status", "in": "query", "description": "状态筛选：0-待办 1-进行中 2-待验收 3-已完成", "schema": { "type": "integer" } },
+          { "name": "assigneeId", "in": "query", "schema": { "type": "integer", "format": "int64" } },
+          { "name": "priority", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "任务列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_ListTaskVO" } } } } }
+      }
+    },
+    "/project/{projectId}/task": {
+      "post": {
+        "tags": ["任务管理-Task"],
+        "summary": "创建任务",
+        "operationId": "createTask",
+        "parameters": [{ "name": "projectId", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TaskDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Long" } } } } }
+      }
+    },
+    "/project/task/{id}": {
+      "get": {
+        "tags": ["任务管理-Task"],
+        "summary": "查询任务详情",
+        "operationId": "getTask",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "任务详情", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_TaskDetailVO" } } } } }
+      },
+      "put": {
+        "tags": ["任务管理-Task"],
+        "summary": "修改任务",
+        "operationId": "updateTask",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TaskUpdateDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      },
+      "delete": {
+        "tags": ["任务管理-Task"],
+        "summary": "删除任务",
+        "operationId": "deleteTask",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/project/task/{id}/status": {
+      "put": {
+        "tags": ["任务管理-Task"],
+        "summary": "变更任务状态",
+        "operationId": "updateTaskStatus",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "status": { "type": "integer", "description": "0-待办 1-进行中 2-待验收 3-已完成" } } } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/project/task/{id}/log": {
+      "get": {
+        "tags": ["任务日志-TaskLog"],
+        "summary": "查询任务操作日志",
+        "operationId": "listTaskLogs",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "日志列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_ListTaskLogVO" } } } } }
+      }
+    },
+    "/document/folder/tree": {
+      "get": {
+        "tags": ["文件夹管理-Folder"],
+        "summary": "获取文件夹树",
+        "operationId": "getFolderTree",
+        "responses": { "200": { "description": "文件夹树", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_ListFolderTreeVO" } } } } }
+      }
+    },
+    "/document/folder": {
+      "post": {
+        "tags": ["文件夹管理-Folder"],
+        "summary": "创建文件夹",
+        "operationId": "createFolder",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FolderDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Long" } } } } }
+      }
+    },
+    "/document/folder/{id}": {
+      "put": {
+        "tags": ["文件夹管理-Folder"],
+        "summary": "修改文件夹",
+        "operationId": "updateFolder",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FolderDTO" } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      },
+      "delete": {
+        "tags": ["文件夹管理-Folder"],
+        "summary": "删除文件夹",
+        "operationId": "deleteFolder",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/document/file/list": {
+      "get": {
+        "tags": ["文件管理-File"],
+        "summary": "查询文件列表",
+        "operationId": "listFiles",
+        "parameters": [
+          { "name": "current", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } },
+          { "name": "folderId", "in": "query", "schema": { "type": "integer", "format": "int64" } },
+          { "name": "type", "in": "query", "description": "文件类型", "schema": { "type": "string" } },
+          { "name": "keyword", "in": "query", "description": "文件名搜索", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "分页结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_PageFileVO" } } } } }
+      }
+    },
+    "/document/file/upload": {
+      "post": {
+        "tags": ["文件管理-File"],
+        "summary": "上传文件",
+        "operationId": "uploadFile",
+        "requestBody": { "required": true, "content": { "multipart/form-data": { "schema": { "type": "object", "required": ["file"], "properties": { "file": { "type": "string", "format": "binary", "description": "上传文件" }, "folderId": { "type": "integer", "format": "int64", "description": "目标文件夹 ID" } } } } } },
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_FileVO" } } } } }
+      }
+    },
+    "/document/file/{id}/download": {
+      "get": {
+        "tags": ["文件管理-File"],
+        "summary": "下载文件",
+        "operationId": "downloadFile",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "文件流", "content": { "application/octet-stream": { "schema": { "type": "string", "format": "binary" } } } } }
+      }
+    },
+    "/document/file/{id}": {
+      "delete": {
+        "tags": ["文件管理-File"],
+        "summary": "删除文件（逻辑删除）",
+        "operationId": "deleteFile",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/document/file/{id}/recycle": {
+      "put": {
+        "tags": ["文件管理-File"],
+        "summary": "移入回收站",
+        "operationId": "recycleFile",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/document/file/recycle/list": {
+      "get": {
+        "tags": ["文件管理-File"],
+        "summary": "回收站文件列表",
+        "operationId": "listRecycledFiles",
+        "parameters": [
+          { "name": "current", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": { "200": { "description": "分页结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_PageFileVO" } } } } }
+      }
+    },
+    "/document/file/{id}/restore": {
+      "put": {
+        "tags": ["文件管理-File"],
+        "summary": "从回收站恢复文件",
+        "operationId": "restoreFile",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/document/file/{id}/permanent": {
+      "delete": {
+        "tags": ["文件管理-File"],
+        "summary": "永久删除文件",
+        "operationId": "permanentDeleteFile",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/notification/list": {
+      "get": {
+        "tags": ["通知消息-Notification"],
+        "summary": "分页查询消息列表",
+        "operationId": "listNotifications",
+        "parameters": [
+          { "name": "current", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "size", "in": "query", "schema": { "type": "integer", "default": 10 } },
+          { "name": "type", "in": "query", "description": "消息类型：1-系统 2-审批 3-任务 4-考勤", "schema": { "type": "integer" } },
+          { "name": "isRead", "in": "query", "description": "是否已读：0-未读 1-已读", "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "分页结果", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_PageNotificationVO" } } } } }
+      }
+    },
+    "/notification/{id}/read": {
+      "put": {
+        "tags": ["通知消息-Notification"],
+        "summary": "标记消息为已读",
+        "operationId": "readNotification",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/notification/read-all": {
+      "put": {
+        "tags": ["通知消息-Notification"],
+        "summary": "全部标记已读",
+        "operationId": "readAllNotifications",
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    },
+    "/notification/unread-count": {
+      "get": {
+        "tags": ["通知消息-Notification"],
+        "summary": "查询未读消息数量",
+        "operationId": "unreadCount",
+        "responses": { "200": { "description": "未读数量", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Integer" } } } } }
+      }
+    },
+    "/notification/{id}": {
+      "delete": {
+        "tags": ["通知消息-Notification"],
+        "summary": "删除消息",
+        "operationId": "deleteNotification",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/R_Void" } } } } }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    },
+    "schemas": {
+      "R_Void": { "type": "object", "properties": { "code": { "type": "integer", "example": 200 }, "message": { "type": "string", "example": "操作成功" }, "data": { "type": "object", "nullable": true } } },
+      "R_Long": { "type": "object", "properties": { "code": { "type": "integer", "example": 200 }, "message": { "type": "string" }, "data": { "type": "integer", "format": "int64" } } },
+      "R_String": { "type": "object", "properties": { "code": { "type": "integer", "example": 200 }, "message": { "type": "string" }, "data": { "type": "string" } } },
+      "LoginDTO": { "type": "object", "required": ["username", "password"], "properties": { "username": { "type": "string", "example": "admin" }, "password": { "type": "string", "example": "admin123" }, "captchaCode": { "type": "string" }, "captchaKey": { "type": "string" } } },
+      "RegisterDTO": { "type": "object", "required": ["username", "password", "realName"], "properties": { "username": { "type": "string" }, "password": { "type": "string" }, "realName": { "type": "string" }, "phone": { "type": "string" }, "email": { "type": "string" } } },
+      "LoginVO": { "type": "object", "properties": { "token": { "type": "string" }, "userId": { "type": "integer", "format": "int64" }, "username": { "type": "string" }, "realName": { "type": "string" } } },
+      "R_LoginVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "$ref": "#/components/schemas/LoginVO" } } },
+      "CaptchaVO": { "type": "object", "properties": { "captchaKey": { "type": "string" }, "captchaImage": { "type": "string", "description": "Base64 图片" } } },
+      "R_CaptchaVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "$ref": "#/components/schemas/CaptchaVO" } } },
+      "UserInfoVO": { "type": "object", "properties": { "userId": { "type": "integer", "format": "int64" }, "username": { "type": "string" }, "realName": { "type": "string" }, "phone": { "type": "string" }, "email": { "type": "string" }, "avatar": { "type": "string" }, "deptId": { "type": "integer", "format": "int64" }, "deptName": { "type": "string" }, "roles": { "type": "array", "items": { "type": "string" } }, "permissions": { "type": "array", "items": { "type": "string" } } } },
+      "R_UserInfoVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "$ref": "#/components/schemas/UserInfoVO" } } },
+      "UserVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "username": { "type": "string" }, "realName": { "type": "string" }, "phone": { "type": "string" }, "email": { "type": "string" }, "avatar": { "type": "string" }, "deptId": { "type": "integer", "format": "int64" }, "deptName": { "type": "string" }, "position": { "type": "string" }, "status": { "type": "integer" }, "roles": { "type": "array", "items": { "$ref": "#/components/schemas/RoleVO" } }, "createTime": { "type": "string", "format": "date-time" } } },
+      "R_UserVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "$ref": "#/components/schemas/UserVO" } } },
+      "PageUserVO": { "type": "object", "properties": { "total": { "type": "integer", "format": "int64" }, "current": { "type": "integer", "format": "int64" }, "size": { "type": "integer", "format": "int64" }, "records": { "type": "array", "items": { "$ref": "#/components/schemas/UserVO" } } } },
+      "R_PageUserVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "$ref": "#/components/schemas/PageUserVO" } } },
+      "UserCreateDTO": { "type": "object", "required": ["username", "password", "realName"], "properties": { "username": { "type": "string" }, "password": { "type": "string" }, "realName": { "type": "string" }, "phone": { "type": "string" }, "email": { "type": "string" }, "deptId": { "type": "integer", "format": "int64" }, "position": { "type": "string" }, "roleIds": { "type": "array", "items": { "type": "integer", "format": "int64" } } } },
+      "UserUpdateDTO": { "type": "object", "properties": { "realName": { "type": "string" }, "phone": { "type": "string" }, "email": { "type": "string" }, "deptId": { "type": "integer", "format": "int64" }, "position": { "type": "string" }, "status": { "type": "integer" } } },
+      "DeptDTO": { "type": "object", "required": ["name"], "properties": { "parentId": { "type": "integer", "format": "int64", "default": 0 }, "name": { "type": "string" }, "sort": { "type": "integer", "default": 0 }, "leaderId": { "type": "integer", "format": "int64" }, "status": { "type": "integer", "default": 1 } } },
+      "DeptTreeVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "parentId": { "type": "integer", "format": "int64" }, "name": { "type": "string" }, "sort": { "type": "integer" }, "leaderId": { "type": "integer", "format": "int64" }, "leaderName": { "type": "string" }, "status": { "type": "integer" }, "children": { "type": "array", "items": { "$ref": "#/components/schemas/DeptTreeVO" } } } },
+      "R_ListDeptTreeVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "type": "array", "items": { "$ref": "#/components/schemas/DeptTreeVO" } } } },
+      "RoleVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "name": { "type": "string" }, "code": { "type": "string" }, "dataScope": { "type": "integer" }, "sort": { "type": "integer" }, "status": { "type": "integer" } } },
+      "R_ListRoleVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "type": "array", "items": { "$ref": "#/components/schemas/RoleVO" } } } },
+      "RoleDTO": { "type": "object", "required": ["name", "code"], "properties": { "name": { "type": "string" }, "code": { "type": "string" }, "dataScope": { "type": "integer", "default": 4 }, "sort": { "type": "integer", "default": 0 }, "status": { "type": "integer", "default": 1 } } },
+      "MenuDTO": { "type": "object", "required": ["name", "type"], "properties": { "parentId": { "type": "integer", "format": "int64", "default": 0 }, "name": { "type": "string" }, "type": { "type": "integer", "description": "1-目录 2-菜单 3-按钮" }, "path": { "type": "string" }, "component": { "type": "string" }, "permission": { "type": "string" }, "icon": { "type": "string" }, "sort": { "type": "integer", "default": 0 }, "visible": { "type": "integer", "default": 1 } } },
+      "MenuTreeVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "parentId": { "type": "integer", "format": "int64" }, "name": { "type": "string" }, "type": { "type": "integer" }, "path": { "type": "string" }, "component": { "type": "string" }, "permission": { "type": "string" }, "icon": { "type": "string" }, "sort": { "type": "integer" }, "visible": { "type": "integer" }, "children": { "type": "array", "items": { "$ref": "#/components/schemas/MenuTreeVO" } } } },
+      "R_ListMenuTreeVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "type": "array", "items": { "$ref": "#/components/schemas/MenuTreeVO" } } } },
+      "ApprovalTemplateVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "name": { "type": "string" }, "code": { "type": "string" }, "icon": { "type": "string" }, "description": { "type": "string" }, "formConfig": { "type": "object", "description": "JSON 表单字段配置" }, "flowConfig": { "type": "object", "description": "JSON 审批流程配置" }, "status": { "type": "integer" }, "createTime": { "type": "string", "format": "date-time" } } },
+      "R_ApprovalTemplateVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "$ref": "#/components/schemas/ApprovalTemplateVO" } } },
+      "R_ListApprovalTemplateVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "type": "array", "items": { "$ref": "#/components/schemas/ApprovalTemplateVO" } } } },
+      "ApprovalTemplateDTO": { "type": "object", "required": ["name", "code", "formConfig", "flowConfig"], "properties": { "name": { "type": "string" }, "code": { "type": "string" }, "icon": { "type": "string" }, "description": { "type": "string" }, "formConfig": { "type": "object" }, "flowConfig": { "type": "object" }, "status": { "type": "integer", "default": 1 } } },
+      "ApprovalSubmitDTO": { "type": "object", "required": ["templateId", "title", "formData"], "properties": { "templateId": { "type": "integer", "format": "int64" }, "title": { "type": "string" }, "formData": { "type": "object", "description": "表单数据 JSON" } } },
+      "ApprovalActionDTO": { "type": "object", "required": ["action"], "properties": { "action": { "type": "integer", "description": "1-同意 2-拒绝 3-退回 4-转交" }, "comment": { "type": "string" }, "transferToUserId": { "type": "integer", "format": "int64", "description": "转交目标人（action=4时必填）" } } },
+      "ApprovalInstanceVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "templateId": { "type": "integer", "format": "int64" }, "templateCode": { "type": "string" }, "title": { "type": "string" }, "status": { "type": "integer", "description": "0-待审批 1-审批中 2-已通过 3-已拒绝 4-已撤回" }, "applicantId": { "type": "integer", "format": "int64" }, "applicantName": { "type": "string" }, "currentNode": { "type": "integer" }, "createTime": { "type": "string", "format": "date-time" }, "finishTime": { "type": "string", "format": "date-time", "nullable": true } } },
+      "R_PageApprovalInstanceVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "type": "object", "properties": { "total": { "type": "integer", "format": "int64" }, "current": { "type": "integer", "format": "int64" }, "size": { "type": "integer", "format": "int64" }, "records": { "type": "array", "items": { "$ref": "#/components/schemas/ApprovalInstanceVO" } } } } } },
+      "ApprovalRecordVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "nodeIndex": { "type": "integer" }, "nodeName": { "type": "string" }, "nodeType": { "type": "integer", "description": "1-审批 2-会签 3-或签" }, "approverId": { "type": "integer", "format": "int64" }, "approverName": { "type": "string" }, "action": { "type": "integer", "description": "1-同意 2-拒绝 3-退回 4-转交", "nullable": true }, "comment": { "type": "string", "nullable": true }, "actionTime": { "type": "string", "format": "date-time", "nullable": true }, "status": { "type": "integer", "description": "0-待处理 1-已处理" } } },
+      "ApprovalDetailVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "templateId": { "type": "integer", "format": "int64" }, "templateCode": { "type": "string" }, "title": { "type": "string" }, "formData": { "type": "object" }, "status": { "type": "integer" }, "applicantId": { "type": "integer", "format": "int64" }, "applicantName": { "type": "string" }, "currentNode": { "type": "integer" }, "createTime": { "type": "string", "format": "date-time" }, "finishTime": { "type": "string", "format": "date-time", "nullable": true }, "records": { "type": "array", "items": { "$ref": "#/components/schemas/ApprovalRecordVO" } } } },
+      "R_ApprovalDetailVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "$ref": "#/components/schemas/ApprovalDetailVO" } } },
+      "R_Integer": { "type": "object", "properties": { "code": { "type": "integer", "example": 200 }, "message": { "type": "string" }, "data": { "type": "integer" } } },
+      "ClockDTO": { "type": "object", "required": ["type"], "properties": { "type": { "type": "integer", "description": "1-上班 2-下班" }, "latitude": { "type": "number", "format": "double" }, "longitude": { "type": "number", "format": "double" }, "address": { "type": "string" }, "remark": { "type": "string", "description": "外勤说明" } } },
+      "AttendanceRecordVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "userId": { "type": "integer", "format": "int64" }, "type": { "type": "integer", "description": "1-上班 2-下班" }, "clockTime": { "type": "string", "format": "date-time" }, "latitude": { "type": "number", "format": "double", "nullable": true }, "longitude": { "type": "number", "format": "double", "nullable": true }, "address": { "type": "string" }, "isNormal": { "type": "integer", "description": "0-外勤 1-正常" }, "remark": { "type": "string", "nullable": true } } },
+      "R_AttendanceRecordVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "$ref": "#/components/schemas/AttendanceRecordVO" } } },
+      "R_ListAttendanceRecordVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "type": "array", "items": { "$ref": "#/components/schemas/AttendanceRecordVO" } } } },
+      "R_PageAttendanceRecordVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "type": "object", "properties": { "total": { "type": "integer", "format": "int64" }, "current": { "type": "integer", "format": "int64" }, "size": { "type": "integer", "format": "int64" }, "records": { "type": "array", "items": { "$ref": "#/components/schemas/AttendanceRecordVO" } } } } } },
+      "AttendanceStatsVO": { "type": "object", "properties": { "userId": { "type": "integer", "format": "int64" }, "year": { "type": "integer" }, "month": { "type": "integer" }, "workDays": { "type": "integer", "description": "应出勤天数" }, "actualDays": { "type": "integer", "description": "实际出勤天数" }, "lateDays": { "type": "integer", "description": "迟到天数" }, "earlyDays": { "type": "integer", "description": "早退天数" }, "absentDays": { "type": "integer", "description": "缺勤天数" }, "leaveDays": { "type": "number", "format": "double", "description": "请假天数" }, "overtimeDays": { "type": "number", "format": "double", "description": "加班天数" } } },
+      "R_AttendanceStatsVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "$ref": "#/components/schemas/AttendanceStatsVO" } } },
+      "LeaveDTO": { "type": "object", "required": ["type", "startTime", "endTime", "duration", "reason"], "properties": { "type": { "type": "integer", "description": "1-事假 2-病假 3-年假 4-调休 5-婚假 6-产假" }, "startTime": { "type": "string", "format": "date-time" }, "endTime": { "type": "string", "format": "date-time" }, "duration": { "type": "number", "format": "double", "description": "时长（天）" }, "reason": { "type": "string" } } },
+      "LeaveVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "userId": { "type": "integer", "format": "int64" }, "userName": { "type": "string" }, "type": { "type": "integer", "description": "1-事假 2-病假 3-年假 4-调休 5-婚假 6-产假" }, "startTime": { "type": "string", "format": "date-time" }, "endTime": { "type": "string", "format": "date-time" }, "duration": { "type": "number", "format": "double" }, "reason": { "type": "string" }, "approvalId": { "type": "integer", "format": "int64", "nullable": true }, "status": { "type": "integer", "description": "0-待审批 1-已通过 2-已拒绝" }, "createTime": { "type": "string", "format": "date-time" } } },
+      "R_LeaveVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "$ref": "#/components/schemas/LeaveVO" } } },
+      "R_PageLeaveVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "type": "object", "properties": { "total": { "type": "integer", "format": "int64" }, "current": { "type": "integer", "format": "int64" }, "size": { "type": "integer", "format": "int64" }, "records": { "type": "array", "items": { "$ref": "#/components/schemas/LeaveVO" } } } } } },
+      "AttendanceRuleDTO": { "type": "object", "required": ["name", "type"], "properties": { "name": { "type": "string" }, "type": { "type": "integer", "description": "1-固定班制 2-弹性班制 3-排班制" }, "workStart": { "type": "string", "description": "上班时间 HH:mm:ss" }, "workEnd": { "type": "string", "description": "下班时间 HH:mm:ss" }, "flexStartBegin": { "type": "string", "description": "弹性上班开始" }, "flexStartEnd": { "type": "string", "description": "弹性上班结束" }, "lateThreshold": { "type": "integer", "default": 10, "description": "迟到阈值（分钟）" }, "earlyThreshold": { "type": "integer", "default": 10, "description": "早退阈值（分钟）" } } },
+      "AttendanceRuleVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "name": { "type": "string" }, "type": { "type": "integer", "description": "1-固定班制 2-弹性班制 3-排班制" }, "workStart": { "type": "string" }, "workEnd": { "type": "string" }, "flexStartBegin": { "type": "string", "nullable": true }, "flexStartEnd": { "type": "string", "nullable": true }, "lateThreshold": { "type": "integer" }, "earlyThreshold": { "type": "integer" } } },
+      "R_ListAttendanceRuleVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "type": "array", "items": { "$ref": "#/components/schemas/AttendanceRuleVO" } } } },
+      "AttendanceLocationDTO": { "type": "object", "required": ["name", "latitude", "longitude"], "properties": { "name": { "type": "string" }, "latitude": { "type": "number", "format": "double" }, "longitude": { "type": "number", "format": "double" }, "radius": { "type": "integer", "default": 500, "description": "打卡半径（米）" } } },
+      "AttendanceLocationVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "name": { "type": "string" }, "latitude": { "type": "number", "format": "double" }, "longitude": { "type": "number", "format": "double" }, "radius": { "type": "integer" }, "geohash": { "type": "string" } } },
+      "R_ListAttendanceLocationVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "type": "array", "items": { "$ref": "#/components/schemas/AttendanceLocationVO" } } } },
+      "ProjectDTO": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "description": { "type": "string" }, "cover": { "type": "string" }, "startDate": { "type": "string", "format": "date" }, "endDate": { "type": "string", "format": "date" } } },
+      "ProjectVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "name": { "type": "string" }, "description": { "type": "string" }, "cover": { "type": "string", "nullable": true }, "ownerId": { "type": "integer", "format": "int64" }, "ownerName": { "type": "string" }, "startDate": { "type": "string", "format": "date", "nullable": true }, "endDate": { "type": "string", "format": "date", "nullable": true }, "status": { "type": "integer", "description": "0-归档 1-进行中" }, "taskCount": { "type": "integer", "description": "任务总数" }, "completedCount": { "type": "integer", "description": "已完成任务数" }, "memberCount": { "type": "integer", "description": "成员数" }, "createTime": { "type": "string", "format": "date-time" } } },
+      "R_PageProjectVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "type": "object", "properties": { "total": { "type": "integer", "format": "int64" }, "current": { "type": "integer", "format": "int64" }, "size": { "type": "integer", "format": "int64" }, "records": { "type": "array", "items": { "$ref": "#/components/schemas/ProjectVO" } } } } } },
+      "ProjectDetailVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "name": { "type": "string" }, "description": { "type": "string" }, "cover": { "type": "string", "nullable": true }, "ownerId": { "type": "integer", "format": "int64" }, "ownerName": { "type": "string" }, "startDate": { "type": "string", "format": "date", "nullable": true }, "endDate": { "type": "string", "format": "date", "nullable": true }, "status": { "type": "integer" }, "taskCount": { "type": "integer" }, "completedCount": { "type": "integer" }, "memberCount": { "type": "integer" }, "members": { "type": "array", "items": { "$ref": "#/components/schemas/ProjectMemberVO" } }, "createTime": { "type": "string", "format": "date-time" } } },
+      "R_ProjectDetailVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "$ref": "#/components/schemas/ProjectDetailVO" } } },
+      "ProjectMemberVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "projectId": { "type": "integer", "format": "int64" }, "userId": { "type": "integer", "format": "int64" }, "userName": { "type": "string" }, "avatar": { "type": "string", "nullable": true }, "role": { "type": "integer", "description": "1-负责人 2-成员 3-观察者" }, "joinTime": { "type": "string", "format": "date-time" } } },
+      "R_ListProjectMemberVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "type": "array", "items": { "$ref": "#/components/schemas/ProjectMemberVO" } } } },
+      "MemberAddDTO": { "type": "object", "required": ["userIds"], "properties": { "userIds": { "type": "array", "items": { "type": "integer", "format": "int64" }, "description": "用户 ID 列表" }, "role": { "type": "integer", "default": 2, "description": "1-负责人 2-成员 3-观察者" } } },
+      "TaskDTO": { "type": "object", "required": ["title"], "properties": { "title": { "type": "string" }, "description": { "type": "string" }, "parentId": { "type": "integer", "format": "int64", "description": "父任务 ID" }, "assigneeId": { "type": "integer", "format": "int64" }, "priority": { "type": "integer", "default": 2, "description": "0-低 1-中 2-高 3-紧急" }, "tag": { "type": "string" }, "dueDate": { "type": "string", "format": "date" } } },
+      "TaskUpdateDTO": { "type": "object", "properties": { "title": { "type": "string" }, "description": { "type": "string" }, "assigneeId": { "type": "integer", "format": "int64" }, "priority": { "type": "integer" }, "tag": { "type": "string" }, "dueDate": { "type": "string", "format": "date" }, "sort": { "type": "integer" } } },
+      "TaskVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "projectId": { "type": "integer", "format": "int64" }, "parentId": { "type": "integer", "format": "int64", "nullable": true }, "title": { "type": "string" }, "description": { "type": "string", "nullable": true }, "assigneeId": { "type": "integer", "format": "int64", "nullable": true }, "assigneeName": { "type": "string", "nullable": true }, "creatorId": { "type": "integer", "format": "int64" }, "creatorName": { "type": "string" }, "priority": { "type": "integer", "description": "0-低 1-中 2-高 3-紧急" }, "status": { "type": "integer", "description": "0-待办 1-进行中 2-待验收 3-已完成" }, "tag": { "type": "string", "nullable": true }, "dueDate": { "type": "string", "format": "date", "nullable": true }, "sort": { "type": "integer" }, "subTaskCount": { "type": "integer", "description": "子任务数" }, "completedSubCount": { "type": "integer", "description": "已完成子任务数" }, "createTime": { "type": "string", "format": "date-time" } } },
+      "R_ListTaskVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "type": "array", "items": { "$ref": "#/components/schemas/TaskVO" } } } },
+      "TaskDetailVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "projectId": { "type": "integer", "format": "int64" }, "parentId": { "type": "integer", "format": "int64", "nullable": true }, "title": { "type": "string" }, "description": { "type": "string", "nullable": true }, "assigneeId": { "type": "integer", "format": "int64", "nullable": true }, "assigneeName": { "type": "string", "nullable": true }, "creatorId": { "type": "integer", "format": "int64" }, "creatorName": { "type": "string" }, "priority": { "type": "integer" }, "status": { "type": "integer" }, "tag": { "type": "string", "nullable": true }, "dueDate": { "type": "string", "format": "date", "nullable": true }, "sort": { "type": "integer" }, "subTasks": { "type": "array", "items": { "$ref": "#/components/schemas/TaskVO" } }, "createTime": { "type": "string", "format": "date-time" }, "updateTime": { "type": "string", "format": "date-time" } } },
+      "R_TaskDetailVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "$ref": "#/components/schemas/TaskDetailVO" } } },
+      "TaskLogVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "taskId": { "type": "integer", "format": "int64" }, "userId": { "type": "integer", "format": "int64" }, "userName": { "type": "string" }, "action": { "type": "string", "description": "创建/状态变更/分配/评论" }, "content": { "type": "string", "nullable": true }, "createTime": { "type": "string", "format": "date-time" } } },
+      "R_ListTaskLogVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "type": "array", "items": { "$ref": "#/components/schemas/TaskLogVO" } } } },
+      "FolderDTO": { "type": "object", "required": ["name"], "properties": { "parentId": { "type": "integer", "format": "int64", "default": 0 }, "name": { "type": "string" } } },
+      "FolderTreeVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "parentId": { "type": "integer", "format": "int64" }, "name": { "type": "string" }, "createBy": { "type": "integer", "format": "int64" }, "createTime": { "type": "string", "format": "date-time" }, "children": { "type": "array", "items": { "$ref": "#/components/schemas/FolderTreeVO" } } } },
+      "R_ListFolderTreeVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "type": "array", "items": { "$ref": "#/components/schemas/FolderTreeVO" } } } },
+      "FileVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "folderId": { "type": "integer", "format": "int64" }, "name": { "type": "string" }, "size": { "type": "integer", "format": "int64", "description": "文件大小（字节）" }, "type": { "type": "string", "description": "文件类型 pdf/docx/xlsx/jpg" }, "url": { "type": "string" }, "createBy": { "type": "integer", "format": "int64" }, "createByName": { "type": "string" }, "createTime": { "type": "string", "format": "date-time" }, "isRecycled": { "type": "integer", "description": "0-正常 1-回收站" } } },
+      "R_FileVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "$ref": "#/components/schemas/FileVO" } } },
+      "R_PageFileVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "type": "object", "properties": { "total": { "type": "integer", "format": "int64" }, "current": { "type": "integer", "format": "int64" }, "size": { "type": "integer", "format": "int64" }, "records": { "type": "array", "items": { "$ref": "#/components/schemas/FileVO" } } } } } },
+      "NotificationVO": { "type": "object", "properties": { "id": { "type": "integer", "format": "int64" }, "userId": { "type": "integer", "format": "int64" }, "title": { "type": "string" }, "content": { "type": "string" }, "type": { "type": "integer", "description": "1-系统通知 2-审批通知 3-任务通知 4-考勤通知" }, "bizId": { "type": "integer", "format": "int64", "nullable": true, "description": "关联业务 ID" }, "isRead": { "type": "integer", "description": "0-未读 1-已读" }, "createTime": { "type": "string", "format": "date-time" } } },
+      "R_PageNotificationVO": { "type": "object", "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "type": "object", "properties": { "total": { "type": "integer", "format": "int64" }, "current": { "type": "integer", "format": "int64" }, "size": { "type": "integer", "format": "int64" }, "records": { "type": "array", "items": { "$ref": "#/components/schemas/NotificationVO" } } } } } }
+    }
+  },
+  "security": [{ "BearerAuth": [] }]
+}

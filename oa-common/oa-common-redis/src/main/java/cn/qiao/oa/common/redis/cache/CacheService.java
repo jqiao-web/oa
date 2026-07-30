@@ -176,6 +176,14 @@ public class CacheService {
     }
 
     /**
+     * 更新缓存有效期（只更新redis不更新本地缓存）
+     * @param key
+     */
+    public void updateExpire(String key, long timeout, TimeUnit unit) {
+        redisTemplate.expire(key, timeout, TimeUnit.SECONDS);
+    }
+
+    /**
      * 清空所有本地缓存
      */
     public void clearLocal() {

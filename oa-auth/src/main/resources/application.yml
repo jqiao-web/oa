@@ -28,6 +28,7 @@ spring:
 
 # MyBatis-Plus 配置
 mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
@@ -36,3 +37,9 @@ mybatis-plus:
       logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
+
+# JWT 配置
+oa:
+  jwt:
+    secret: oa-cloud-jwt-secret-key-must-be-at-least-256-bits-long
+    expiration: 86400000

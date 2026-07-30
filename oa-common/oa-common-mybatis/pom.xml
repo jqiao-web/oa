@@ -22,7 +22,7 @@
         <!-- MyBatis-Plus -->
         <dependency>
             <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+            <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
         </dependency>
 
         <!-- MyBatis-Plus JSqlParser（分页插件等依赖） -->
@@ -49,10 +49,10 @@
             <artifactId>aspectjweaver</artifactId>
         </dependency>
 
-        <!-- oa-common-security（可选依赖，提供 SecurityUtils 用户上下文） -->
+        <!-- oa-common-web（可选依赖，提供 SecurityUtils 用户上下文） -->
         <dependency>
             <groupId>cn.qiao</groupId>
-            <artifactId>oa-common-security</artifactId>
+            <artifactId>oa-common-web</artifactId>
             <optional>true</optional>
         </dependency>
     </dependencies>

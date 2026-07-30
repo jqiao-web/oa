@@ -50,11 +50,21 @@
             <artifactId>oa-common-jwt</artifactId>
         </dependency>
 
+        <!-- SpringDoc OpenAPI 3 - WebFlux UI（Gateway 响应式架构） -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>cn.qiao</groupId>
+            <artifactId>oa-common-redis</artifactId>
         </dependency>
     </dependencies>
 
